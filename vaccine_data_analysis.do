@@ -185,7 +185,12 @@ est store m_2
 est table m_2 m_1 m_0, b(%12.3f) var(20) star(.01 .05 .10) stats(N)
 //result: order effects detected only in the simplest model
 test $order_effects1
+kwallis male, by($order_effects1)
+kwallis age, by($order_effects1)
+kwallis higher_edu, by($order_effects1)
 kwallis v_decision, by($order_effects1)
+
+  
 //result: no order effects detected
 
 quietly ologit v_decision $vaccine_vars $order_effects2
@@ -196,8 +201,16 @@ quietly ologit v_decision $vaccine_vars $demogr $emotions $risk $worry $voting $
 est store m_2
 est table m_2 m_1 m_0, b(%12.3f) var(20) star(.01 .05 .10) stats(N)
 //result: no order effects detected
+
+ ologit male $order_effects2
 test $order_effects2
-//result: no order effects detected
+ ologit age $order_effects2
+test $order_effects2
+ ologit higher_edu $order_effects2
+test $order_effects2
+ ologit v_decision $order_effects2
+test $order_effects2
+//result: order effects detected
 
 /////****END********************************/////////
 

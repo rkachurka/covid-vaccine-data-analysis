@@ -6,11 +6,13 @@
 clear all 
 capture cd "G:\Shared drives\Koronawirus\studies\5 common data cleaning (Ariadna data)"
 capture cd "G:\Dyski współdzielone\Koronawirus\studies\5 common data cleaning (Ariadna data)"
+capture cd "/Volumes/GoogleDrive/Shared drives/Koronawirus/studies/5 common data cleaning (Ariadna data)"
 use data_stata_format.dta, clear
 do common_data_cleaning.do
 
 capture cd "G:\Shared drives\Koronawirus\studies\3 szczepionka\data analysis"
 capture cd "G:\Dyski współdzielone\Koronawirus\studies\3 szczepionka\data analysis"
+capture cd "/Volumes/GoogleDrive/Shared drives/Koronawirus/studies/3 szczepionka"
 
 //[P40] Gdyby po pierwszych miesiącach szczepień potwierdziło się, że szczepionka jest skuteczna i bezpieczna, to byłbyś skłonny się zaszczepić? Zaznacz.
 rename p40 decision_change

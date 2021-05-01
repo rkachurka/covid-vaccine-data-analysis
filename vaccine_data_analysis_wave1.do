@@ -1,3 +1,349 @@
+net install asdoc, from(http://fintechprofessor.com) replace
+
+// ideas:
+// robustness check: to compare distrubution of answers for Ariadna data
+// robustness check: to drop out 5% of the fastest subjects
+// to remove participant with inconsistent justification of vax decision
+// to remove all other categories if there is a category "just_yes" OR just_no
+
+clear all
+// install package to import spss file
+// net from http://radyakin.org/transfer/usespss/beta
+//import spss using "G:\Shared drives\Koronawirus\studies\3 szczepionka\20210310 data analysis (Arianda wave2)\archive\WNE2_N3000.sav", clear
+//import spss using "/Volumes/GoogleDrive/Shared drives/Koronawirus/studies/3 szczepionka/20210310 data analysis (
+// > Arianda wave2)/archive/WNE2_N3000.sav"
+
+//ssc install scheme-burd, replace
+capture set scheme burd
+//INTSALATION:
+//capture ssc install tabstatmat
+
+clear all
+
+//common data cleaning
+capture cd "G:\Shared drives\Koronawirus\studies\5 common data cleaning (wave1)"
+capture cd "G:\Dyski współdzielone\Koronawirus\studies\5 common data cleaning (wave1)"
+capture cd "/Volumes/GoogleDrive/Shared drives/Koronawirus/studies/5 common data cleaning (wave1)"
+use "wave1_final_refto.dta"
+do common_data_cleaning.do
+
+capture cd "G:\Shared drives\Koronawirus\studies\3 szczepionka\20210301 data analysis (Ariadna wave1)"
+capture cd "G:\Dyski współdzielone\Koronawirus\studies\3 szczepionka\20210301 data analysis (Ariadna wave1)"
+capture cd "/Volumes/GoogleDrive/Shared drives/Koronawirus/studies/3 szczepionka/20210301 data analysis (Ariadna wave1)"
+
+//////////////////*************GLOBALS***************////////////
+global wealth "wealth_low wealth_high" //included into demogr
+global demogr "male age i.city_population secondary_edu higher_edu $wealth health_poor health_good $health_details tested_pos thinks_had covid_hospitalized covid_friends religious i.religious_freq status_unemployed status_pension status_student" 
+global demogr_no_ma "i.city_population $wealth health_poor health_good $health_details tested_pos thinks_had covid_hospitalized covid_friends religious i.religious_freq status_unemployed status_pension status_student"
+global demogr_int "male age higher_edu" //RK: Michal, did you ommit secondary_edu?
+global emotions "e_happiness e_fear e_anger e_disgust e_sadness e_surprise"
+global risk "risk_overall risk_work risk_health"
+global worry "worry_covid worry_cold worry_unempl"
+global control "control_covid control_cold control_unempl $explanations"
+global informed "informed_covid informed_cold informed_unempl"
+global conspiracy "conspiracy_general_info conspiracy_stats conspiracy_excuse" //we also have conspiracy_score
+global voting "i.voting"
+global voting_short "b2.voting_short" // makes the largest and centrist party (two of them really: PO+Hołownia) the base category 
+global health_advice "mask_wearing distancing"
+//global order_effects "$g_order_emotions $order_trust $g_order_risk $g_order_worry $g_order_control $g_order_informed $g_order_estimations $g_order_conspiracy order_vaccine_persuasion"
+
+pwcorr no_manips $vaccine_vars male age second higher $wealth health*, sig
+tab no_manips voting, chi
+
+foreach i in $health_advice{
+tab `i'
+}
+global covid_impact "subj_est_cases_ln subj_est_death_l"
+//global order_effects ""
+// DEFINED (UND UPDATED TO NEW VERSION) BEFORE! global vaccine_vars "v_prod_reputation	v_efficiency	v_safety		v_other_want_it	v_scientific_authority	v_ease_personal_restrictions	v_p_gets70	v_p_pays10	v_p_pays70" // i leave out scarcity -- sth that supposedly everybody knows. we can't estimate all because of ariadna's error anyway
+// global vaccine_short "v_prod_reputation	v_efficiency	v_safety	v_scarcity	v_other_want_it	v_scientific_authority	v_ease_personal_restrictions"
+global prices "v_p_gets70	v_p_pays10	v_p_pays70"
+
+
+
+/*
+
+capture drop edu_short
+gen edu_short=1*ele+2*sec+3*higher
+
+logit vaxx_yes sex##c.age edu_short##voting_short [pweight=waga]
+margins sex, at(age=(18(5)78))
+marginsplot, recast(line) recastci(rarea) xtitle("Wiek") ytitle("szansa, że ktoś zdecyduje się zaszczepić") ylabel(0 "0%" 0.2 "20%"  0.4 "40%" 0.6 "60%" 0.8 "80%" ) title("")
+
+margins edu_short#voting_short
+
+marginsplot, recast(scatter) xtitle("wykształcenie") ytitle("szansa, że ktoś zdecyduje się zaszczepić") ylabel(0 "0%" 0.2 "20%"  0.4 "40%" 0.6 "60%" 0.8 "80%" ) title("") noci
+*/
+//////////**** simple logit yes/no
+logit vaxx_yes $vaccine_vars $demogr [pweight=waga], or
+est store l_1
+
+// this global will later be changed!
+global basic_for_int "$vaccine_vars $demogr $voting_short $emotions $risk worry_covid $trust_dummies control_covid $informed conspiracy_score $covid_impact $health_advice"
+
+logit vaxx_yes  $basic_for_int [pweight=waga], or
+test control_cov $informed conspiracy_score $covid_impact $health_advice
+
+xi: logit vaxx_yes  $basic_for_int i.region infected_yesterday [pweight=waga], or
+test _Iregion_2/_Iregion_16
+ 
+xi: logit vaxx_yes  $basic_for_int i.region PL_infected_y [pweight=waga], or
+xi: logit vaxx_yes  $basic_for_int i.region deceased_y_pc [pweight=waga], or
+
+xi: logit vaxx_yes  $basic_for_int i.region infected_y_pc deceased_y_pc PL_infected_yesterday PL_deceased_yesterday [pweight=waga], or
+test _Iregion_2/_Iregion_16
+test infected_y_pc deceased_y_pc
+test PL_infected_yesterday PL_deceased_yesterday
+test _Iregion_2/_Iregion_16 infected_y_pc deceased_y_pc PL_infected_yesterday PL_deceased_yesterday
+
+//to add to every model?
+global cases_vars "i.region infected_y_pc deceased_y_pc PL_infected_yesterday PL_deceased_yesterday"
+global basic_for_int "$basic_for_int $cases_vars"
+xi: logit vaxx_yes  $basic_for_int [pweight=waga], or
+test control_cov $informed conspiracy_score $covid_impact $health_advice _Iregion_2/_Iregion_16 infected_y_pc decea PL_infect PL_dec
+est store l_2
+
+xi: logit vaxx_yes sex##c.age edu_short##b2.voting_short $cases_vars $vaccine_vars $demogr_no_ma  $emotions $risk worry_covid $trust_dummies control_covid $informed conspiracy_score  $covid_impact $health_advice [pweight=waga]
+est store l_3
+
+// MARGINS, plots
+margins sex, at(age=(18(5)78))
+
+marginsplot, recast(line) ciopt(color(%50)) recastci(rarea) // xtitle("Wiek") ytitle("Odsetek badanych chcących się szczepić") ylabel(0.4 "40%" 0.5 "50%" 0.6 "60%" 0.7 "70%" 0.8 "80%") title("")
+// marginsplot, recast(line) recastci(rarea) 
+graph save "margins-sex_age_eng.gph", replace
+
+ssc describe mplotoffset
+margins edu_short#voting_short
+//PL: marginsplot, recast(scatter) xtitle("wykształcenie") ytitle("Odsetek badanych chcących się szczepić") ylabel(0 "0%" 0.2 "20%"  0.4 "40%" 0.6 "60%" 0.8 "80%" ) title("")
+marginsplot, recast(scatter) name(gr1,replace)
+graph save "margins-edu_voting_eng.gph", replace
+
+margins edu_short#voting_short
+capture mplotoffset, recast(scatter)  offset(.1) // xtitle("Wykształcenie") ytitle("Odsetek badanych chcących się szczepić") ylabel(0 "0%" 0.2 "20%"  0.4 "40%" 0.6 "60%" 0.8 "80%" ) title("")
+graph save Graph "margins-edu_voting_eng.gph", replace
+
+/*
+/// WHY AND WHO by decision
+tabstat why_* [weight=waga], by(v_decision)
+tabstat who_* [weight=waga], by(v_decision)
+tab v_decision
+*/
+
+
+stop
+capture save "G:\Dyski współdzielone\Koronawirus\studies\3 szczepionka\20210301 data analysis (Ariadna wave1)\wave1_final_before_tuples.dta", replace
+capture use "G:\Dyski współdzielone\Koronawirus\studies\3 szczepionka\20210301 data analysis (Ariadna wave1)\wave1_final_before_tuples.dta", replace
+
+global vv_plus "$vaccine_vars v_p_pay0"
+dis "$vv_plus"
+
+global interactions ""
+foreach manipulation in $vv_plus {
+	foreach demogr in $demogr_int {
+	
+	local abb=substr("`manipulation'",1,14)
+	
+	gen i_`abb'_`demogr'=`abb'*`demogr'	
+	global interactions "$interactions i_`abb'_`demogr'" 	
+}
+}
+
+
+dis "$interactions"
+quietly xi:logit vaxx_yes $basic_for_int  $interactions [pweight=waga], or 
+est store l_4
+test $interactions
+
+est table l_1 l_2 l_2 l_3 l_4, b(%12.3f) var(20) star(.01 .05 .10) stats(N r2_p) eform
+
+
+
+local counter=0
+
+global int_manips=""
+capture drop vvi_*
+foreach manipulation in $vv_plus {
+
+	foreach m2 in $vaccine_vars {
+	local counter=`counter'+1
+	gen vvi_`counter'=`manipulation'*`m2'	
+	label var vvi_`counter' "`manipulation'_`m2'"
+	global int_manips="$int_manips vvi_`counter'" //  `vvi_`counter''"
+}
+}
+dis "$int_manips"
+
+
+xi: logit vaxx_yes $basic_for_int  $int_manips [pweight=waga], or
+est store l_5
+test $int_manips
+
+//check for interactions: vaccine price + income
+global price_wealth ""
+foreach price in $prices {
+	foreach level in $wealth {
+	gen wp_`price'_`level'=`price'*`level'
+	global price_wealth "$price_wealth wp_`price'_`level'" 	
+}
+}
+dis "$price_wealth"
+xi: logit vaxx_yes $basic_for_int  $price_wealth [pweight=waga], or
+est store l_6
+test $price_wealth
+
+
+//check for interactions: vaccine persuasive messages set 1 + conspiracy score
+global int_consp_manip ""
+foreach manipulation in $vaccine_vars {
+	local abb=substr("`manipulation'",1,14)
+	gen `abb'_conspiracy=`abb'*conspiracy_score	
+	global int_consp_manip "$int_consp_manip `abb'_conspiracy" 	
+}
+dis "$int_consp_manip"
+xi: logit vaxx_yes $basic_for_int  $int_consp_manip [pweight=waga], or
+est store l_7
+test $int_consp_manip
+
+drop v_*_conspiracy
+
+
+
+
+
+//check for interactions: vaccine persuasive messages (prod from EU; vaccine safety + voting)
+//gen int_voting_prod=voting*v_prod_reputation
+//gen int_voting_safety=voting*v_safety
+xi: quietly logit vaxx_yes $basic_for_int i.voting*v_prod_reputation i.voting*v_safety [pweight=waga]
+est store l_8
+test  _IvotXv_pro_2 _IvotXv_pro_3 _IvotXv_pro_4 _IvotXv_pro_7 _IvotXv_pro_8 _IvotXv_pro_9 _IvotXv_saf_2 _IvotXv_saf_3 _IvotXv_saf_4 _IvotXv_saf_7 _IvotXv_saf_8 _IvotXv_saf_9
+
+
+/*
+capture drop i_v*emo_*
+capture drop i_v*e_*
+global int_emo_manip ""
+foreach manipulation in $vaccine_vars {
+	foreach emo in $emotions {
+	local abb=substr("`manipulation'",1,14)
+	gen i_`abb'_`emo'=`abb'*`emo'	
+	global int_emo_manip "$int_emo_manip i_`abb'_`emo'" 	
+}
+}
+
+dis "$int_emo_manip"
+logit vaxx_yes $basic_for_int  $int_emo_manip [pweight=waga], or
+est store l_10
+test $int_emo_manip
+*/
+
+
+est table l_5 l_6 l_7 l_8, b(%12.3f) var(20) star(.01 .05 .10) stats(N r2_p) eform
+
+
+// m_3 m_4 m_5 m_6 m_7, b(%12.3f) var(20) star(.01 .05 .10) stats(N)
+//result:yes/no interactions detected
+//result:yes/no order effects detected 
+/////****END********************************/////////
+
+// est table m_2 m_1 m_0, b(%12.3f) var(20) star(.01 .05 .10) stats(N)
+
+// XXXXXXXXXXXXXXXXXXX ologit specs analogous to logit here pls once we finally decide on logit!
+
+//////////**** now ologit
+ologit v_decision $vaccine_vars $demogr [pweight=waga], or
+est store o_1
+
+xi: ologit v_decision  $basic_for_int [pweight=waga], or
+est store o_2
+test control_cov $informed conspiracy_score $covid_impact $health_advice
+test _Iregion_2/_Iregion_16
+test infected_y_pc deceased_y_pc
+test PL_infected_yesterday PL_deceased_yesterday
+test _Iregion_2/_Iregion_16 infected_y_pc deceased_y_pc PL_infected_yesterday PL_deceased_yesterday
+
+
+xi: ologit v_decision sex##c.age edu_short##b2.voting_short $cases_vars $vaccine_vars $demogr_no_ma  $emotions $risk worry_covid $trust_dummies control_covid $informed conspiracy_score  $covid_impact $health_advice [pweight=waga]
+est store o_3
+tab edu_short
+
+quietly xi: ologit v_decision $basic_for_int  $interactions [pweight=waga], or 
+est store o_4
+test $interactions
+
+est table o_1 o_2 o_2 o_3 o_4, b(%12.3f) var(20) star(.01 .05 .10) stats(N r2_p) eform
+
+xi: ologit v_decision $basic_for_int  $int_manips [pweight=waga], or
+est store o_5
+test $int_manips
+
+xi: ologit v_decision $basic_for_int  $price_wealth [pweight=waga], or
+est store o_6
+test $price_wealth
+
+
+//check for interactions: vaccine persuasive messages set 1 + conspiracy score
+global int_consp_manip ""
+foreach manipulation in $vaccine_vars {
+	local abb=substr("`manipulation'",1,14)
+	gen `abb'_conspiracy=`abb'*conspiracy_score	
+	global int_consp_manip "$int_consp_manip `abb'_conspiracy" 	
+}
+dis "$int_consp_manip"
+xi: ologit v_decision $basic_for_int  $int_consp_manip [pweight=waga], or
+est store o_7
+test $int_consp_manip
+
+drop v_*_conspiracy
+
+
+
+//check for interactions: vaccine persuasive messages (prod from EU; vaccine safety + voting)
+//gen int_voting_prod=voting*v_prod_reputation
+//gen int_voting_safety=voting*v_safety
+xi: quietly ologit v_decision $basic_for_int i.voting*v_prod_reputation i.voting*v_safety [pweight=waga]
+est store o_8
+test  _IvotXv_pro_2 _IvotXv_pro_3 _IvotXv_pro_4 _IvotXv_pro_7 _IvotXv_pro_8 _IvotXv_pro_9 _IvotXv_saf_2 _IvotXv_saf_3 _IvotXv_saf_4 _IvotXv_saf_7 _IvotXv_saf_8 _IvotXv_saf_9
+
+/*
+//old code from wave2
+//check fgor order effects, added $ifo_vaxshort $io_vaxshort
+dis "$ifo_vaxshort $io_vaxshort"
+xi: ologit v_decision $basic_for_int  $ifo_vaxshort $io_vaxshort [pweight=waga], or
+est store o_9
+test $ifo_vaxshort $io_vaxshort
+*/
+
+est table o_5 o_6 o_7 o_8, b(%12.3f) var(20) star(.01 .05 .10) stats(N r2_p) eform
+
+
+xi: ologit decision_change v_decision $basic_for_int [pweight=waga], or
+
+// FIGURES ??
+/////////**********************************************////////////////
+/////////**********************************************////////////////
+/////////**********************************************////////////////
+
+
+// manipulation checks from why questions
+prtest ref_to_referred_to_the_price, by(v_p_pay0) // ok
+prtest why_vaccine_too, by(v_p_pays70) // ok
+
+prtest ref_to_referred_to_the_e if vaxx_yes, by(v_efficiency) // right direction, but not sig
+prtest why_conv if vaxx_yes, by(v_ease_persrest) // ok
+prtest why_conv, by(v_ease_persrest) // ok
+
+prtest why_norm if vaxx_yes, by(v_scientific_authority) // ok
+
+// not clear which way it should go :):
+//prtest why_poor if vaxx_yes==0, by(v_tested) 
+//prtest why_poor, by(v_tested) 
+prtest why_safety_gen if vaxx_yes, by(v_safety)
+
+//no test for v_scarcity because we dont have such explanations
+
+///OLD CODE
+/*
 // ideas:
 // robustness check: to compare distrubution of answers for Ariadna data
 // robustness check: to drop out 5% of the fastest subjects

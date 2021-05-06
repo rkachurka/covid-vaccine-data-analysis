@@ -1,4 +1,4 @@
-net install asdoc, from(http://fintechprofessor.com) replace
+// net install asdoc, from(http://fintechprofessor.com) replace
 
 // ideas:
 // robustness check: to compare distrubution of answers for Ariadna data
@@ -21,19 +21,32 @@ capture set scheme burd
 clear all
 
 //common data cleaning
-capture cd "G:\Shared drives\Koronawirus\studies\5 common data cleaning (wave1)"
-capture cd "G:\Dyski współdzielone\Koronawirus\studies\5 common data cleaning (wave1)"
-capture cd "/Volumes/GoogleDrive/Shared drives/Koronawirus/studies/5 common data cleaning (wave1)"
-use "wave1_final_refto.dta"
-do common_data_cleaning.do
+
+capture cd "G:\Shared drives\Koronawirus\studies"
+capture cd "G:\Dyski współdzielone\Koronawirus\studies"
+capture cd "/Volumes/GoogleDrive/Shared drives/Koronawirus/studies"
+
+use "5 common data cleaning (wave1)\wave1_final_refto.dta"
+do "5 common data cleaning (wave1)\common_data_cleaning.do
+
+// adding performance
+
+capture cd "G:\Shared drives\Koronawirus\studies\4 puzzles (actual full study)\data analysis"
+capture cd "G:\Dyski współdzielone\Koronawirus\studies\4 puzzles (actual full study)\data analysis"
+capture cd "/Volumes/GoogleDrive/Shared drives/Koronawirus/studies/4 puzzles (actual full study)/data analysis"
+
+do puzzles_data_analysis.do
 
 capture cd "G:\Shared drives\Koronawirus\studies\3 szczepionka\20210301 data analysis (Ariadna wave1)"
 capture cd "G:\Dyski współdzielone\Koronawirus\studies\3 szczepionka\20210301 data analysis (Ariadna wave1)"
 capture cd "/Volumes/GoogleDrive/Shared drives/Koronawirus/studies/3 szczepionka/20210301 data analysis (Ariadna wave1)"
 
+
+
+
 //////////////////*************GLOBALS***************////////////
 global wealth "wealth_low wealth_high" //included into demogr
-global demogr "male age i.city_population secondary_edu higher_edu $wealth health_poor health_good $health_details tested_pos thinks_had covid_hospitalized covid_friends religious i.religious_freq status_unemployed status_pension status_student" 
+global demogr "male age i.city_population secondary_edu higher_edu $wealth health_poor health_good $health_details tested_pos thinks_had covid_hospitalized covid_friends religious i.religious_freq status_unemployed status_pension status_student i.treatment performance" 
 global demogr_no_ma "i.city_population $wealth health_poor health_good $health_details tested_pos thinks_had covid_hospitalized covid_friends religious i.religious_freq status_unemployed status_pension status_student"
 global demogr_int "male age higher_edu" //RK: Michal, did you ommit secondary_edu?
 global emotions "e_happiness e_fear e_anger e_disgust e_sadness e_surprise"
@@ -74,10 +87,27 @@ margins edu_short#voting_short
 
 marginsplot, recast(scatter) xtitle("wykształcenie") ytitle("szansa, że ktoś zdecyduje się zaszczepić") ylabel(0 "0%" 0.2 "20%"  0.4 "40%" 0.6 "60%" 0.8 "80%" ) title("") noci
 */
+
+
+//////////**** DISTRIBUTION OF THE MAIN DEPENDENT VARIABLE
+
+tabstat vaxx_yes [weight=waga], statistics( mean ) by(region_id)
+
+
+// FOR THE PAPER -- TABLE 1
+
+sum vaxx_cert_yes [weight=waga]
+sum vaxx_rather_yes [weight=waga]
+sum vaxx_rather_no [weight=waga]
+sum vaxx_cert_no [weight=waga]
+
+sum vaxx_yes [weight=waga]
+
+
 //////////**** simple logit yes/no
 logit vaxx_yes $vaccine_vars $demogr [pweight=waga], or
 est store l_1
-
+dis "$vaccine_vars $demogr"
 // this global will later be changed!
 global basic_for_int "$vaccine_vars $demogr $voting_short $emotions $risk worry_covid $trust_dummies control_covid $informed conspiracy_score $covid_impact $health_advice"
 
@@ -103,7 +133,7 @@ xi: logit vaxx_yes  $basic_for_int [pweight=waga], or
 test control_cov $informed conspiracy_score $covid_impact $health_advice _Iregion_2/_Iregion_16 infected_y_pc decea PL_infect PL_dec
 est store l_2
 
-xi: logit vaxx_yes sex##c.age edu_short##b2.voting_short $cases_vars $vaccine_vars $demogr_no_ma  $emotions $risk worry_covid $trust_dummies control_covid $informed conspiracy_score  $covid_impact $health_advice [pweight=waga]
+xi: logit vaxx_yes sex##c.age edu_short##b2.voting_short $cases_vars $vaccine_vars $demogr_no_ma  $emotions $risk worry_covid $trust_dummies control_covid $informed conspiracy_score  $covid_impact $health_advice i.treatment performance [pweight=waga]
 est store l_3
 
 // MARGINS, plots
@@ -111,31 +141,54 @@ margins sex, at(age=(18(5)78))
 
 marginsplot, recast(line) ciopt(color(%50)) recastci(rarea) // xtitle("Wiek") ytitle("Odsetek badanych chcących się szczepić") ylabel(0.4 "40%" 0.5 "50%" 0.6 "60%" 0.7 "70%" 0.8 "80%") title("")
 // marginsplot, recast(line) recastci(rarea) 
-graph save "margins-sex_age_eng.gph", replace
+//graph save "margins-sex_age_eng.gph", replace
 
-ssc describe mplotoffset
+//ssc describe mplotoffset
 margins edu_short#voting_short
 //PL: marginsplot, recast(scatter) xtitle("wykształcenie") ytitle("Odsetek badanych chcących się szczepić") ylabel(0 "0%" 0.2 "20%"  0.4 "40%" 0.6 "60%" 0.8 "80%" ) title("")
 marginsplot, recast(scatter) name(gr1,replace)
-graph save "margins-edu_voting_eng.gph", replace
+//graph save "margins-edu_voting_eng.gph", replace
 
 margins edu_short#voting_short
 capture mplotoffset, recast(scatter)  offset(.1) // xtitle("Wykształcenie") ytitle("Odsetek badanych chcących się szczepić") ylabel(0 "0%" 0.2 "20%"  0.4 "40%" 0.6 "60%" 0.8 "80%" ) title("")
-graph save Graph "margins-edu_voting_eng.gph", replace
+//graph save Graph "margins-edu_voting_eng.gph", replace
 
-/*
+
 /// WHY AND WHO by decision
 tabstat why_* [weight=waga], by(v_decision)
 tabstat who_* [weight=waga], by(v_decision)
 tab v_decision
-*/
 
 
-stop
+/// correlation, factor analysis WHY AND WHO
+global why_no "why_safety_concerns why_efficacy_concerns why_poorly_tested why_not_afraid_virus why_just_no why_vaccine_too_costly why_conspiracy why_contraindications why_antibodies why_doubts_no why_mistrust_no why_antivax"
+factor $why_no if vaxx_yes==0
+
+global why_yes "why_safety_general why_others_safety why_normality why_just_yes why_belief_science why_no_alternatives why_morbidity_factors why_convenience why_doubts_yes why_money why_already_vac why_obligation"
+factor $why_yes if vaxx_yes
+
+global who_no "who_dont_know who_nothing who_family who_doctor who_else who_more_info who_forced who_money who_more_evidence_efficacy who_more_evidence_safety who_time" 
+factor $who_no if vaxx_yes==0
+
+global who_yes " who_dont_know who_nothing who_family who_doctor who_else who_more_info who_own_health who_more_evidence_inefficacy who_side_effects"
+factor $who_yes if vaxx_yes
+// i don't find them fascinating
+
+
+global who_no 
+pwcorr $who_yes $why_yes if vaxx_yes, sig
+pwcorr $who_no $why_no if vaxx_yes==0, sig
+
+pwcorr why_safety_con why_poorly why_just_no why_mistrust_no who_don who_nothi if vaxx_yes==0,  sig
+pwcorr why_safety_g why_others why_convenie why_normality who_dont who_nothing who_side, sig
+sum why_* who_* if vaxx_yes
+// factor why_safety_overall/why_doubts who_* if vaxx_yes
+
+
 capture save "G:\Dyski współdzielone\Koronawirus\studies\3 szczepionka\20210301 data analysis (Ariadna wave1)\wave1_final_before_tuples.dta", replace
 capture use "G:\Dyski współdzielone\Koronawirus\studies\3 szczepionka\20210301 data analysis (Ariadna wave1)\wave1_final_before_tuples.dta", replace
 
-global vv_plus "$vaccine_vars v_p_pay0"
+global vv_plus "$vaccine_vars v_p_pay0 v_scarcity"
 dis "$vv_plus"
 
 global interactions ""
@@ -151,11 +204,12 @@ foreach manipulation in $vv_plus {
 
 
 dis "$interactions"
-quietly xi:logit vaxx_yes $basic_for_int  $interactions [pweight=waga], or 
+xi:logit vaxx_yes $basic_for_int  $interactions [pweight=waga], or 
 est store l_4
 test $interactions
 
-est table l_1 l_2 l_2 l_3 l_4, b(%12.3f) var(20) star(.01 .05 .10) stats(N r2_p) eform
+est table l_1 l_2 l_2 l_3 l_4, b(%12.3f) var(20) star(.01 .05 .10) stats(N r2_p) eform // FOR THE PAPER
+
 
 
 
@@ -219,6 +273,11 @@ est store l_8
 test  _IvotXv_pro_2 _IvotXv_pro_3 _IvotXv_pro_4 _IvotXv_pro_7 _IvotXv_pro_8 _IvotXv_pro_9 _IvotXv_saf_2 _IvotXv_saf_3 _IvotXv_saf_4 _IvotXv_saf_7 _IvotXv_saf_8 _IvotXv_saf_9
 
 
+xi: logit vaxx_yes $basic_for_int  $ifo_vaxshort $io_vaxshort [pweight=waga], or
+est store l_9
+test  $ifo_vaxshort $io_vaxshort
+
+
 /*
 capture drop i_v*emo_*
 capture drop i_v*e_*
@@ -238,7 +297,8 @@ test $int_emo_manip
 */
 
 
-est table l_5 l_6 l_7 l_8, b(%12.3f) var(20) star(.01 .05 .10) stats(N r2_p) eform
+est table l_5 l_6 l_7 l_8 l_9, b(%12.3f) var(20) star(.01 .05 .10) stats(N r2_p) eform // FOR THE PAPER
+
 
 
 // m_3 m_4 m_5 m_6 m_7, b(%12.3f) var(20) star(.01 .05 .10) stats(N)
@@ -263,7 +323,7 @@ test PL_infected_yesterday PL_deceased_yesterday
 test _Iregion_2/_Iregion_16 infected_y_pc deceased_y_pc PL_infected_yesterday PL_deceased_yesterday
 
 
-xi: ologit v_decision sex##c.age edu_short##b2.voting_short $cases_vars $vaccine_vars $demogr_no_ma  $emotions $risk worry_covid $trust_dummies control_covid $informed conspiracy_score  $covid_impact $health_advice [pweight=waga]
+xi: ologit v_decision sex##c.age edu_short##b2.voting_short $cases_vars $vaccine_vars $demogr_no_ma  $emotions $risk worry_covid $trust_dummies control_covid $informed conspiracy_score  $covid_impact $health_advice i.treatment performance [pweight=waga]
 est store o_3
 tab edu_short
 
@@ -271,7 +331,7 @@ quietly xi: ologit v_decision $basic_for_int  $interactions [pweight=waga], or
 est store o_4
 test $interactions
 
-est table o_1 o_2 o_2 o_3 o_4, b(%12.3f) var(20) star(.01 .05 .10) stats(N r2_p) eform
+est table o_1 o_2 o_2 o_3 o_4, b(%12.3f) var(20) star(.01 .05 .10) stats(N r2_p) eform // FOR THE PAPER
 
 xi: ologit v_decision $basic_for_int  $int_manips [pweight=waga], or
 est store o_5
@@ -314,8 +374,8 @@ est store o_9
 test $ifo_vaxshort $io_vaxshort
 */
 
-est table o_5 o_6 o_7 o_8, b(%12.3f) var(20) star(.01 .05 .10) stats(N r2_p) eform
-
+est table o_5 o_6 o_7 o_8, b(%12.3f) var(20) star(.01 .05 .10) stats(N r2_p) eform // FOR THE PAPER
+stop
 
 xi: ologit decision_change v_decision $basic_for_int [pweight=waga], or
 
@@ -333,7 +393,7 @@ prtest ref_to_referred_to_the_e if vaxx_yes, by(v_efficiency) // right direction
 prtest why_conv if vaxx_yes, by(v_ease_persrest) // ok
 prtest why_conv, by(v_ease_persrest) // ok
 
-prtest why_norm if vaxx_yes, by(v_scientific_authority) // ok
+prtest why_norm if vaxx_yes, by(v_scientific_authority) // right direction, n.s.
 
 // not clear which way it should go :):
 //prtest why_poor if vaxx_yes==0, by(v_tested) 

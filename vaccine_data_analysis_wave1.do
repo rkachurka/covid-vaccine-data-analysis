@@ -9,7 +9,7 @@
 clear all
 // install package to import spss file
 // net from http://radyakin.org/transfer/usespss/beta
-//import spss using "G:\Shared drives\Koronawirus\studies\3 szczepionka\20210310 data analysis (Arianda wave2)\archive\WNE2_N3000.sav", clear
+//import spss using "G:\Shared drives\Koronawirus\studies\3 szczepionka\20210310 data analysis (Arianda wave2)\archive\WNE2_N3000.sav", clear 
 //import spss using "/Volumes/GoogleDrive/Shared drives/Koronawirus/studies/3 szczepionka/20210310 data analysis (
 // > Arianda wave2)/archive/WNE2_N3000.sav"
 
@@ -17,6 +17,7 @@ clear all
 capture set scheme burd
 //INTSALATION:
 //capture ssc install tabstatmat
+//ssc install mplotoffset
 
 clear all
 
@@ -25,19 +26,20 @@ clear all
 capture cd "G:\Shared drives\Koronawirus\studies"
 capture cd "G:\Dyski współdzielone\Koronawirus\studies"
 capture cd "/Volumes/GoogleDrive/Shared drives/Koronawirus/studies"
+capture cd "G:\Shared drives\Koronawirus\studies\"
 
-use "5 common data cleaning (wave1)\wave1_final_refto.dta"
-do "5 common data cleaning (wave1)\common_data_cleaning.do
+use "5 common data cleaning (puzzles Study 3 and Vaccines wave 1)\wave1_final_refto.dta"
+do "5 common data cleaning (puzzles Study 3 and Vaccines wave 1)\common_data_cleaning.do
 
-// adding performance
+// adding performance:
 
-capture cd "G:\Shared drives\Koronawirus\studies\4 puzzles (actual full study)\data analysis"
+ cd "G:\Shared drives\Koronawirus\studies\4 puzzles Study 3 (actual full study- Ariadna)\data analysis"
 capture cd "G:\Dyski współdzielone\Koronawirus\studies\4 puzzles (actual full study)\data analysis"
 capture cd "/Volumes/GoogleDrive/Shared drives/Koronawirus/studies/4 puzzles (actual full study)/data analysis"
 
 do puzzles_data_analysis.do
 
-capture cd "G:\Shared drives\Koronawirus\studies\3 szczepionka\20210301 data analysis (Ariadna wave1)"
+ cd "G:\Shared drives\Koronawirus\studies\3 szczepionka (Vaccines wave 1 and 2)\20210301 data analysis (Ariadna wave1)"
 capture cd "G:\Dyski współdzielone\Koronawirus\studies\3 szczepionka\20210301 data analysis (Ariadna wave1)"
 capture cd "/Volumes/GoogleDrive/Shared drives/Koronawirus/studies/3 szczepionka/20210301 data analysis (Ariadna wave1)"
 
@@ -49,15 +51,15 @@ global wealth "wealth_low wealth_high" //included into demogr
 global demogr "male age i.city_population secondary_edu higher_edu $wealth health_poor health_good $health_details tested_pos thinks_had covid_hospitalized covid_friends religious i.religious_freq status_unemployed status_pension status_student i.treatment performance" 
 global demogr_no_ma "i.city_population $wealth health_poor health_good $health_details tested_pos thinks_had covid_hospitalized covid_friends religious i.religious_freq status_unemployed status_pension status_student"
 global demogr_int "male age higher_edu" //RK: Michal, did you ommit secondary_edu?
-global emotions "e_happiness e_fear e_anger e_disgust e_sadness e_surprise"
+global emotions "e_joy e_fear e_anger e_disgust e_sadness e_surprise"
 global risk "risk_overall risk_work risk_health"
-global worry "worry_covid worry_cold worry_unempl"
+global worry "fear_covid fear_cold fear_unempl"
 global control "control_covid control_cold control_unempl $explanations"
 global informed "informed_covid informed_cold informed_unempl"
 global conspiracy "conspiracy_general_info conspiracy_stats conspiracy_excuse" //we also have conspiracy_score
 global voting "i.voting"
 global voting_short "b2.voting_short" // makes the largest and centrist party (two of them really: PO+Hołownia) the base category 
-global health_advice "mask_wearing distancing"
+global health_advice "mask_wearing distance"
 //global order_effects "$g_order_emotions $order_trust $g_order_risk $g_order_worry $g_order_control $g_order_informed $g_order_estimations $g_order_conspiracy order_vaccine_persuasion"
 
 pwcorr no_manips $vaccine_vars male age second higher $wealth health*, sig
@@ -68,8 +70,8 @@ tab `i'
 }
 global covid_impact "subj_est_cases_ln subj_est_death_l"
 //global order_effects ""
-// DEFINED (UND UPDATED TO NEW VERSION) BEFORE! global vaccine_vars "v_prod_reputation	v_efficiency	v_safety		v_other_want_it	v_scientific_authority	v_ease_personal_restrictions	v_p_gets70	v_p_pays10	v_p_pays70" // i leave out scarcity -- sth that supposedly everybody knows. we can't estimate all because of ariadna's error anyway
-// global vaccine_short "v_prod_reputation	v_efficiency	v_safety	v_scarcity	v_other_want_it	v_scientific_authority	v_ease_personal_restrictions"
+// DEFINED (UND UPDATED TO NEW VERSION) BEFORE! global vaccine_vars "v_prod_reputation	v_efficiency	v_safety		v_other_want_it	v_scientific_authority	v_vax_passport	v_p_gets70	v_p_pays10	v_p_pays70" // i leave out scarcity -- sth that supposedly everybody knows. we can't estimate all because of ariadna's error anyway
+// global vaccine_short "v_prod_reputation	v_efficiency	v_safety	v_scarcity	v_other_want_it	v_scientific_authority	v_vax_passport"
 global prices "v_p_gets70	v_p_pays10	v_p_pays70"
 
 
@@ -96,10 +98,10 @@ tabstat vaxx_yes [weight=waga], statistics( mean ) by(region_id)
 
 // FOR THE PAPER -- TABLE 1
 
-sum vaxx_cert_yes [weight=waga]
+sum vaxx_def_yes [weight=waga]
 sum vaxx_rather_yes [weight=waga]
 sum vaxx_rather_no [weight=waga]
-sum vaxx_cert_no [weight=waga]
+sum vaxx_def_no [weight=waga]
 
 sum vaxx_yes [weight=waga]
 
@@ -109,7 +111,7 @@ logit vaxx_yes $vaccine_vars $demogr [pweight=waga], or
 est store l_1
 dis "$vaccine_vars $demogr"
 // this global will later be changed!
-global basic_for_int "$vaccine_vars $demogr $voting_short $emotions $risk worry_covid $trust_dummies control_covid $informed conspiracy_score $covid_impact $health_advice"
+global basic_for_int "$vaccine_vars $demogr $voting_short $emotions $risk fear_covid $trust_dummies control_covid $informed conspiracy_score $covid_impact $health_advice"
 
 logit vaxx_yes  $basic_for_int [pweight=waga], or
 test control_cov $informed conspiracy_score $covid_impact $health_advice
@@ -133,25 +135,27 @@ xi: logit vaxx_yes  $basic_for_int [pweight=waga], or
 test control_cov $informed conspiracy_score $covid_impact $health_advice _Iregion_2/_Iregion_16 infected_y_pc decea PL_infect PL_dec
 est store l_2
 
-xi: logit vaxx_yes sex##c.age edu_short##b2.voting_short $cases_vars $vaccine_vars $demogr_no_ma  $emotions $risk worry_covid $trust_dummies control_covid $informed conspiracy_score  $covid_impact $health_advice i.treatment performance [pweight=waga]
+xi: logit vaxx_yes sex##c.age edu_short##b2.voting_short $cases_vars $vaccine_vars $demogr_no_ma  $emotions $risk fear_covid $trust_dummies control_covid $informed conspiracy_score  $covid_impact $health_advice i.treatment performance [pweight=waga]
 est store l_3
 
 // MARGINS, plots
 margins sex, at(age=(18(5)78))
 
-marginsplot, recast(line) ciopt(color(%50)) recastci(rarea) // xtitle("Wiek") ytitle("Odsetek badanych chcących się szczepić") ylabel(0.4 "40%" 0.5 "50%" 0.6 "60%" 0.7 "70%" 0.8 "80%") title("")
-// marginsplot, recast(line) recastci(rarea) 
-//graph save "margins-sex_age_eng.gph", replace
+marginsplot, recast(line) ciopt(color(%50)) recastci(rarea) xtitle("Age") ytitle("Probability that the responder is willing to get vaccinated") ylabel(0.4 "40%" 0.5 "50%" 0.6 "60%" 0.7 "70%" 0.8 "80%") title("")
+//marginsplot, recast(line) recastci(rarea) 
+graph save "margins-sex_age_eng1.gph", replace
 
 //ssc describe mplotoffset
-margins edu_short#voting_short
-//PL: marginsplot, recast(scatter) xtitle("wykształcenie") ytitle("Odsetek badanych chcących się szczepić") ylabel(0 "0%" 0.2 "20%"  0.4 "40%" 0.6 "60%" 0.8 "80%" ) title("")
-marginsplot, recast(scatter) name(gr1,replace)
-//graph save "margins-edu_voting_eng.gph", replace
+
+//margins edu_short#voting_short
+//PL: 
+//marginsplot, recast(scatter) xtitle("wykształcenie") ytitle("Odsetek badanych chcących się szczepić") ylabel(0 "0%" 0.2 "20%"  0.4 "40%" 0.6 "60%" 0.8 "80%" ) title("")
+//marginsplot, recast(scatter) name(gr1,replace)
+//graph save "margins-edu_voting_eng1.gph", replace
 
 margins edu_short#voting_short
-capture mplotoffset, recast(scatter)  offset(.1) // xtitle("Wykształcenie") ytitle("Odsetek badanych chcących się szczepić") ylabel(0 "0%" 0.2 "20%"  0.4 "40%" 0.6 "60%" 0.8 "80%" ) title("")
-//graph save Graph "margins-edu_voting_eng.gph", replace
+mplotoffset, recast(scatter)  offset(.1)  xtitle("Education") ytitle("Probability that the responder is willing to get vaccinated") ylabel(0 "0%" 0.2 "20%"  0.4 "40%" 0.6 "60%" 0.8 "80%" ) title("")
+graph save Graph "margins-edu_voting_eng1.gph", replace
 
 
 /// WHY AND WHO by decision
@@ -323,7 +327,7 @@ test PL_infected_yesterday PL_deceased_yesterday
 test _Iregion_2/_Iregion_16 infected_y_pc deceased_y_pc PL_infected_yesterday PL_deceased_yesterday
 
 
-xi: ologit v_decision sex##c.age edu_short##b2.voting_short $cases_vars $vaccine_vars $demogr_no_ma  $emotions $risk worry_covid $trust_dummies control_covid $informed conspiracy_score  $covid_impact $health_advice i.treatment performance [pweight=waga]
+xi: ologit v_decision sex##c.age edu_short##b2.voting_short $cases_vars $vaccine_vars $demogr_no_ma  $emotions $risk fear_covid $trust_dummies control_covid $informed conspiracy_score  $covid_impact $health_advice i.treatment performance [pweight=waga]
 est store o_3
 tab edu_short
 
@@ -375,7 +379,7 @@ test $ifo_vaxshort $io_vaxshort
 */
 
 est table o_5 o_6 o_7 o_8, b(%12.3f) var(20) star(.01 .05 .10) stats(N r2_p) eform // FOR THE PAPER
-stop
+
 
 xi: ologit decision_change v_decision $basic_for_int [pweight=waga], or
 
@@ -390,8 +394,8 @@ prtest ref_to_referred_to_the_price, by(v_p_pay0) // ok
 prtest why_vaccine_too, by(v_p_pays70) // ok
 
 prtest ref_to_referred_to_the_e if vaxx_yes, by(v_efficiency) // right direction, but not sig
-prtest why_conv if vaxx_yes, by(v_ease_persrest) // ok
-prtest why_conv, by(v_ease_persrest) // ok
+prtest why_conv if vaxx_yes, by(v_vax_passport) // ok
+prtest why_conv, by(v_vax_passport) // ok
 
 prtest why_norm if vaxx_yes, by(v_scientific_authority) // right direction, n.s.
 
@@ -475,17 +479,17 @@ global demogr_int "male age higher_edu"
 global treatments "t_cold t_unempl"
 global emotions "e_happiness e_fear e_anger e_disgust e_sadness e_surprise"
 global risk "risk_overall risk_work risk_health"
-global worry "worry_covid worry_cold worry_unempl"
+global worry "fear_covid fear_cold fear_unempl"
 global control "control_covid control_cold control_unempl $explanations"
 global informed "informed_covid informed_cold informed_unempl"
 global conspiracy "conspiracy_general_info conspiracy_stats conspiracy_excuse" //we also have conspiracy_score
 global voting "i.voting"
-global health_advice "mask_wearing distancing"
+global health_advice "mask_wearing distance"
 global covid_impact "subj_est_cases_ln subj_est_death_l"
 global order_effects1 "row_nr"
 global order_effects2 "day1 day2 day3 day4 day5 day6 day7"
-global vaccine_vars "v_producer_reputation	v_efficiency	v_safety		v_other_want_it	v_scientific_authority	v_ease_personal_restrictions	v_p_gets70	v_p_pays10	v_p_pays70" // i leave out scarcity -- sth that supposedly everybody knows. we can't estimate all because of ariadna's error anyway
-global vaccine_short "v_producer_reputation	v_efficiency	v_safety	v_scarcity	v_other_want_it	v_scientific_authority	v_ease_personal_restrictions"
+global vaccine_vars "v_producer_reputation	v_efficiency	v_safety		v_other_want_it	v_scientific_authority	v_vax_passport	v_p_gets70	v_p_pays10	v_p_pays70" // i leave out scarcity -- sth that supposedly everybody knows. we can't estimate all because of ariadna's error anyway
+global vaccine_short "v_producer_reputation	v_efficiency	v_safety	v_scarcity	v_other_want_it	v_scientific_authority	v_vax_passport"
 global prices "v_p_gets70	v_p_pays10	v_p_pays70"
 
 

@@ -18,6 +18,7 @@ capture set scheme burd
 //INTSALATION:
 //capture ssc install tabstatmat
 //ssc install mplotoffset
+//ssc install coefplot 
 
 clear all
 
@@ -212,9 +213,9 @@ xi:logit vaxx_yes $basic_for_int  $interactions [pweight=waga], or
 est store l_4
 test $interactions
 
-est table l_1 l_2 l_2 l_3 l_4, b(%12.3f) var(20) star(.01 .05 .10) stats(N r2_p) eform // FOR THE PAPER
-
-
+est table l_1 l_2 l_3 l_4, b(%12.3f) var(20) star(.01 .05 .10) stats(N r2_p) eform // FOR THE PAPER
+//to present regression results (which?) as in figure 3 in Heike's Kluever et al paper https://osf.io/ax6pw/ - in other words, to do forest plot
+coefplot  l_1 ,  eform nolabels drop(_cons) xscale(log) xline(1)  xtitle("odds ratio") graphregion(fcolor(white)) levels(95)  //omitted 
 
 
 local counter=0
@@ -336,6 +337,9 @@ est store o_4
 test $interactions
 
 est table o_1 o_2 o_2 o_3 o_4, b(%12.3f) var(20) star(.01 .05 .10) stats(N r2_p) eform // FOR THE PAPER
+//to present regression results (which?) as in figure 3 in Heike's Kluever et al paper https://osf.io/ax6pw/ - in other words, to do forest plot
+coefplot  o_1 ,  eform nolabels drop(_cons) xscale(log) xline(1)  xtitle("odds ratio") graphregion(fcolor(white)) levels(95)  //omitted 
+
 
 xi: ologit v_decision $basic_for_int  $int_manips [pweight=waga], or
 est store o_5

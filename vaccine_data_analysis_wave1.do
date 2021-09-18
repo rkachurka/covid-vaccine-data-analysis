@@ -338,7 +338,7 @@ test $interactions
 
 est table o_1 o_2 o_2 o_3 o_4, b(%12.3f) var(20) star(.01 .05 .10) stats(N r2_p) eform // FOR THE PAPER
 //to present regression results (which?) as in figure 3 in Heike's Kluever et al paper https://osf.io/ax6pw/ - in other words, to do forest plot
-coefplot  o_1 ,  eform nolabels drop(_cons) xscale(log) xline(1)  xtitle("odds ratio") graphregion(fcolor(white)) levels(95)  //omitted 
+coefplot  o_1 ,  eform nolabels drop(_cons) xscale(log) xline(1)  xtitle("Odds ratio") graphregion(fcolor(white)) levels(95)  //omitted 
 
 
 xi: ologit v_decision $basic_for_int  $int_manips [pweight=waga], or
@@ -409,6 +409,15 @@ prtest why_norm if vaxx_yes, by(v_scientific_authority) // right direction, n.s.
 prtest why_safety_gen if vaxx_yes, by(v_safety)
 
 //no test for v_scarcity because we dont have such explanations
+
+/*
+//merge data (our main dependent variable and demographics vars) of wave1 with wave2 and run non-parametric test
+keep v_decision vaxx_yes ID sex age_category city_population year region_id edu risk_overall risk_work risk_health  control_covid control_cold control_unempl informed_covid informed_cold informed_unempl mask_wearing conspiracy_general_info conspiracy_stats conspiracy_excuse had_covid covid_hospitalized covid_friends_hospital_initial income health_state religious_initial religious_freq empl_status voting waga region male age age2 elementary_edu secondary_edu higher_edu edu_short wealth_low wealth_high health_poor health_good tested_pos_covid thinks_had_covid covid_friends no_covid_friends covid_friends_hospital covid_friends_nohospital religious religious_often status_unemployed status_pension status_student conspiracy_score consp_stats_high 
+
+gen wave=1
+
+save "G:\Shared drives\Koronawirus\studies\3 szczepionka (Vaccines wave 1 and 2)\20210310 data analysis (Arianda wave2)\wave1_truncated_data_for_demogr_comparison.dta", replace
+*/
 
 ///OLD CODE
 /*

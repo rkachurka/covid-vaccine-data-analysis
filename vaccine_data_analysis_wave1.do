@@ -142,9 +142,9 @@ est store l_3
 // MARGINS, plots
 margins sex, at(age=(18(5)78))
 
-marginsplot, recast(line) ciopt(color(%50)) recastci(rarea) xtitle("Age") ytitle("Probability that the responder is willing to get vaccinated") ylabel(0.4 "40%" 0.5 "50%" 0.6 "60%" 0.7 "70%" 0.8 "80%") title("")
+marginsplot, recast(line) ciopt(color(%50)) recastci(rarea) xtitle("Age") ytitle("Probability that the respondent is willing to get vaccinated") ylabel(0.4 "40%" 0.5 "50%" 0.6 "60%" 0.7 "70%" 0.8 "80%") title("")
 //marginsplot, recast(line) recastci(rarea) 
-graph save "margins-sex_age_eng1.gph", replace
+//graph save "margins-sex_age_eng1.gph", replace
 
 //ssc describe mplotoffset
 
@@ -155,8 +155,8 @@ graph save "margins-sex_age_eng1.gph", replace
 //graph save "margins-edu_voting_eng1.gph", replace
 
 margins edu_short#voting_short
-mplotoffset, recast(scatter)  offset(.1)  xtitle("Education") ytitle("Probability that the responder is willing to get vaccinated") ylabel(0 "0%" 0.2 "20%"  0.4 "40%" 0.6 "60%" 0.8 "80%" ) title("")
-graph save Graph "margins-edu_voting_eng1.gph", replace
+mplotoffset, recast(scatter)  offset(.1)  xtitle("Education") ytitle("Probability that the respondent is willing to get vaccinated") ylabel(0 "0%" 0.2 "20%"  0.4 "40%" 0.6 "60%" 0.8 "80%" ) title("")
+//graph save Graph "margins-edu_voting_eng1.gph", replace
 
 
 /// WHY AND WHO by decision
